@@ -64,3 +64,14 @@ Train acc на эпохе останова: 0.9548. Gap train/val ≈ 24% — м
 на 50k примеров с 500 примерами на класс.
 
 Лучший чекпоинт: `best_cifar100.pth`.
+
+## Inference API (FastAPI + Docker)
+
+Для демонстрации полного цикла ML-решения (train -> save -> serve) модель обернута в REST API.
+
+**Стек:** FastAPI, Uvicorn, Docker.
+
+**Запуск:**
+```bash
+docker build -t cifar-api .
+docker run -p 8000:8000 cifar-api
