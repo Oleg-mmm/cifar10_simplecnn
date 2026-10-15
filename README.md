@@ -7,6 +7,15 @@
 Обе модели обучаются с нуля (`weights=None`), без pretrained весов.
 Seed фиксирован (123) для воспроизводимости.
 
+## Что демонстрирует проект
+
+- Обучение CNN с нуля
+- Адаптация ResNet18 под малые изображения (32×32)
+- Аугментация данных через `torchvision.transforms`
+- Контроль переобучения: EarlyStopping, ReduceLROnPlateau, Dropout
+- Инференс-пайплайн: OpenCV (BGR→RGB, resize) → PyTorch → FastAPI → JSON
+- Контейнеризация через Docker
+
 ## CIFAR-10 — SimpleCNN
 
 ### Архитектура
@@ -70,6 +79,11 @@ Train acc на эпохе останова: 0.9548. Gap train/val ≈ 24% — м
 Для демонстрации полного цикла ML-решения (train -> save -> serve) модель обернута в REST API.
 
 **Стек:** FastAPI, Uvicorn, Docker.
+
+**Препроцессинг через OpenCV:**
+- `cv2.imdecode` — чтение байтов в ndarray
+- `cv2.cvtColor` — BGR → RGB (OpenCV читает в BGR, PyTorch ждёт RGB)
+- `cv2.resize` до 32×32 с `INTER_AREA` (модели обучались на этом размере)
 
 **Запуск:**
 ```bash
