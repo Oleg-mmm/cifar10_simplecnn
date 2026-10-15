@@ -1,8 +1,8 @@
-import io
+import numpy as np
+import cv2
 import torch
 import torchvision
 import torchvision.transforms as transforms
-from PIL import Image
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
 
@@ -33,16 +33,31 @@ transform = transforms.Compose([
 classes_cifar10 = torchvision.datasets.CIFAR10.classes
 classes_cifar100 = torchvision.datasets.CIFAR100.classes
 
+def opencv_preprocessing(image_bytes):
+    arr = np.frombuffer(image_bytes, dtype=np.uint8)
+    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if img is None:
+        raise ValueError('Не удалось прочитать изображение')
+    
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.resize(img, (32, 32), interpolation=cv2.INTER_AREA)
+    
+    return transform(img).unsqueeze(0).to(device)
+
+
 @app.post("/predict/{model_name}")
 async def predict(model_name: str, file: UploadFile = File(...)):
     if model_name not in ["cifar10", "cifar100"]:
         return JSONResponse(content={"error": "Модель не найдена. Используй 'cifar10' или 'cifar100'"}, status_code=400)
         
-    image_data = await file.read()
-    image = Image.open(io.BytesIO(image_data)).convert("RGB")
-    
-    tensor = transform(image).unsqueeze(0).to(device)
-    
+    image_bytes = await file.read()
+        
+    try:
+        tensor = opencv_preprocessing(image_bytes)
+    except ValueError as val_e:
+        return JSONResponse(content={"error": str(val_e)}, status_code=400)
+        
+            
     # Инференс
     with torch.no_grad():
         if model_name == "cifar10":
