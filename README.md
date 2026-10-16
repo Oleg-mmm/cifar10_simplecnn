@@ -1,10 +1,11 @@
 # CIFAR Classification
 
-Два эксперимента по классификации изображений на PyTorch:
+Три эксперимента по классификации изображений на PyTorch:
 - **CIFAR-10** — собственная CNN с нуля
 - **CIFAR-100** — ResNet18 с нуля, с усиленной аугментацией под малые классы
+- **CIFAR-10 (YOLOv8-cls)** — сравнение с `YOLOv8n-cls` из Ultralytics (transfer learning)
 
-Обе модели обучаются с нуля (`weights=None`), без pretrained весов.
+Основные модели обучаются с нуля (`weights=None`), без pretrained весов.
 Seed фиксирован (123) для воспроизводимости.
 
 ## Что демонстрирует проект
@@ -13,6 +14,7 @@ Seed фиксирован (123) для воспроизводимости.
 - Адаптация ResNet18 под малые изображения (32×32)
 - Аугментация данных через `torchvision.transforms`
 - Контроль переобучения: EarlyStopping, ReduceLROnPlateau, Dropout
+- Сравнительный анализ архитектур: CNN vs `YOLOv8n-cls`
 - Инференс-пайплайн: OpenCV (BGR→RGB, resize) → PyTorch → FastAPI → JSON
 - Контейнеризация через Docker
 
