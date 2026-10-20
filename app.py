@@ -1,3 +1,4 @@
+import asyncio
 import numpy as np
 import cv2
 import torch
@@ -45,36 +46,39 @@ def opencv_preprocessing(image_bytes):
     return transform(img).unsqueeze(0).to(device)
 
 
-@app.post("/predict/{model_name}")
-async def predict(model_name: str, file: UploadFile = File(...)):
-    if model_name not in ["cifar10", "cifar100"]:
-        return JSONResponse(content={"error": "Модель не найдена. Используй 'cifar10' или 'cifar100'"}, status_code=400)
-        
-    image_bytes = await file.read()
-        
-    try:
-        tensor = opencv_preprocessing(image_bytes)
-    except ValueError as val_e:
-        return JSONResponse(content={"error": str(val_e)}, status_code=400)
-        
-            
-    # Инференс
+def run_inference(model_name, image_bytes):
+    tensor = opencv_preprocessing(image_bytes)
     with torch.no_grad():
-        if model_name == "cifar10":
+        if model_name == 'cifar10':
             outputs = model_cifar10(tensor)
             classes = classes_cifar10
         else:
             outputs = model_cifar100(tensor)
             classes = classes_cifar100
-            
         prob = torch.nn.functional.softmax(outputs, dim=1)
-        pred, predict_idx = torch.max(prob, 1)
+        conf, pred_idx = torch.max(prob, dim=1)
         
-    return JSONResponse(content={
-        "model": model_name,
-        "class": classes[predict_idx.item()],
-        "confidence": round(pred.item(), 4)
-    })
+    return {
+            "model": model_name,
+            "class": classes[pred_idx.item()],
+            "confidence": round(conf.item(), 4)
+            }
+
+
+@app.post("/predict/{model_name}")
+async def predict(model_name: str, file: UploadFile = File(...)):
+    if model_name not in ["cifar10", "cifar100"]:
+        return JSONResponse(content={"error": "Модель не найдена. Используйте 'cifar10' или 'cifar100'"}, status_code=400)
+        
+    image_bytes = await file.read()
+        
+    try:
+        result = await asyncio.to_thread(run_inference, model_name, image_bytes)
+    except ValueError as val_e:
+        return JSONResponse(content={"error": str(val_e)}, status_code=400)
+
+    return JSONResponse(content=result)
+
 
 @app.get("/health")
 async def health():
